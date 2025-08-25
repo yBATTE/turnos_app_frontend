@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Turnos</title>
+
+  <!-- Toastify -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+  <style>
+    :root{
+      --bg:#f7fafc; --text:#1f2937; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
+      --accent:#2563eb; --accent-2:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+      --radius:14px; --shadow: 0 8px 24px rgba(0,0,0,.07);
+    }
+    *{box-sizing:border-box}
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text);
+      background:linear-gradient(180deg, #f8fbff 0%, #f7fafc 90%); min-height:100vh; }
+    header{ max-width:1000px; margin: 20px auto 0; padding: 0 16px; display:flex; align-items:center; justify-content:space-between; }
+    .brand{display:flex;align-items:center;gap:12px;}
+    .logo{ width:42px;height:42px;border-radius:12px; background:linear-gradient(135deg,#93c5fd,#60a5fa); box-shadow: var(--shadow); }
+    .brand h1{margin:0;font-size:20px;font-weight:800; letter-spacing:.2px}
+    .container{ max-width:1000px; margin: 20px auto; padding: 16px; display:grid; grid-template-columns: 1fr; gap:16px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding:18px; }
+    .card h2{margin:0 0 12px; font-size:18px}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    @media (max-width:720px){ .row{grid-template-columns:1fr} }
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:14px}
+    input,textarea{ width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);outline:none; }
+    textarea{resize:vertical}
+    .actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    button{ border:0;border-radius:12px;padding:10px 14px;cursor:pointer; background:var(--accent); color:#fff; font-weight:700; box-shadow: var(--shadow); }
+    button.secondary{background:#fff; color:var(--text); border:1px solid var(--border)}
+    button.danger{background:var(--danger)}
+    .toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap}
+    .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);font-size:12px}
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--border)}
+    th{text-align:left;font-size:13px;color:var(--muted)}
+    tr:hover{background:#f9fafb}
+    .tag{padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);display:inline-block}
+    .tag.confirmed{color:var(--accent-2); border-color:#bbf7d0; background:#ecfdf5}
+    .tag.canceled{color:var(--danger); border-color:#fecaca; background:#fef2f2}
+    .tag.rescheduled{color:#b45309; border-color:#fde68a; background:#fffbeb}
+    .config { position: relative; }
+    .menu { position:absolute; right:0; top:120%; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow);
+      min-width:220px; padding:8px; display:none; }
+    .menu a, .menu button { width:100%; text-align:left; padding:10px 12px; border-radius:10px; background:#fff; border:1px solid var(--border); color:var(--text); }
+    .menu a:hover, .menu button:hover { background:#f3f4f6 }
+
+    /* anchors con look de botón */
+    a.btn{ display:inline-block; text-decoration:none; border-radius:12px; padding:10px 14px; font-weight:700; box-shadow: var(--shadow); border:1px solid var(--border); }
+    a.btn.secondary{ background:#fff; color:var(--text); }
+    a.btn.secondary:hover{ background:#f3f4f6; }
+
+    /* Toastify base y variantes */
+    .toastify{ border-radius:14px!important; padding:14px 18px!important; font-size:14px; font-weight:500; box-shadow:0 8px 20px rgba(0,0,0,.15)!important; backdrop-filter: blur(6px); opacity:.95; color:#fff; }
+    .toastify.success{ background:linear-gradient(135deg,#4ade80,#22c55e)!important; }
+    .toastify.error{ background:linear-gradient(135deg,#f87171,#ef4444)!important; }
+    .toastify.warn{ background:linear-gradient(135deg,#facc15,#eab308)!important; color:#000!important; }
+    .toastify.info{ background:linear-gradient(135deg,#93c5fd,#3b82f6)!important; }
+
+    /* Toast forms */
+    .toast-form{ width:360px; max-width:95vw; background:#fff; color:var(--text); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow: var(--shadow); }
+    .toast-form h3{ margin:0 0 10px; font-size:16px; }
+    .toast-form label{ margin:8px 0 4px; color:var(--muted); font-size:13px; }
+    .toast-form input, .toast-form textarea{ background:#fff; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px; width:100%; }
+    .toast-actions{ display:flex; gap:8px; margin-top:10px; }
+    .btn{ padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:#fff; cursor:pointer; }
+    .btn.primary{ background:var(--accent); color:#fff; border:0; }
+    .btn.secondary{ background:#fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <h1>Turnos</h1>
+    </div>
+    <div class="actions">
+      <button id="refreshTop" class="secondary">Actualizar</button>
+      <div class="config">
+        <button id="btnConfig" class="secondary">⚙️ Configuración</button>
+        <div id="menu" class="menu">
+          <div style="padding:6px 8px; color:var(--muted); font-size:12px">Integraciones</div>
+          <a id="btnConnect" href="/auth">Conectar cuenta Google</a>
+          <button id="btnReauth">Forzar reconexión</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Reservar turno</h2>
+      <form id="book">
+        <label>Nombre*</label>
+        <input name="name" required />
+
+        <div class="row">
+          <div>
+            <label>Email (opcional)</label>
+            <input name="email" type="email" />
+          </div>
+          <div>
+            <label>Teléfono (opcional)</label>
+            <input name="phone" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Fecha*</label>
+            <input name="date" type="date" required />
+          </div>
+          <div>
+            <label>Hora*</label>
+            <input name="time" type="time" required />
+          </div>
+        </div>
+
+        <label>Notas</label>
+        <textarea name="notes" rows="3" placeholder="Detalle adicional..."></textarea>
+
+        <label>Duración (min)</label>
+        <input name="durationMin" type="number" min="10" value="30" />
+
+        <div class="actions">
+          <button type="submit">Crear turno</button>
+          <button class="secondary" type="reset">Limpiar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="refresh" class="secondary">Actualizar listado</button>
+          <span class="pill" id="count">0 turnos</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label for="filterDate" style="margin:0;color:var(--muted);font-size:13px">Filtrar por fecha:</label>
+          <input id="filterDate" type="date" />
+          <button id="clearFilter" class="secondary">Quitar filtro</button>
+        </div>
+      </div>
+
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Nombre</th>
+              <th>Notas</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+const tbody = $("#tbody");
+const count = $("#count");
+const filterDate = $("#filterDate");
+const btnConfig = $("#btnConfig");
+const menu = $("#menu");
+const btnConnect = $("#btnConnect");
+const btnReauth = $("#btnReauth");
+
+let cacheItems = [];
+
+function toast(msg, type="info"){
+  Toastify({ text: msg, duration: 3200, close: true, gravity:"top", position:"right", className:type, stopOnFocus:true }).showToast();
+}
+
+btnConfig.addEventListener("click", ()=> { menu.style.display = (menu.style.display==="block") ? "none" : "block"; });
+document.addEventListener("click", (e)=>{ if(!menu.contains(e.target) && !btnConfig.contains(e.target)) menu.style.display="none"; });
+
+async function refreshAuthStatus(){
+  try{
+    const r = await fetch("/api/auth/status");
+    const { connected } = await r.json();
+    btnConnect.style.display = connected ? "none" : "block";
+  }catch{}
+}
+btnReauth.addEventListener("click", async ()=>{
+  if(!confirm("Esto desconecta tu cuenta localmente. ¿Continuar?")) return;
+  const r = await fetch("/api/auth/reset",{method:"POST"});
+  const j = await r.json();
+  if(j.ok){ toast("Listo. Volvé a conectar tu cuenta.", "warn"); btnConnect.style.display="block"; }
+  else { toast("No se pudo reiniciar la conexión", "error"); }
+});
+
+// Crear
+$("#book").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.durationMin = Number(data.durationMin || 30);
+  try {
+    const res = await fetch("/api/appointments", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(data) });
+    const json = await res.json();
+    if (!res.ok || !json.ok) throw new Error(json.error || "Error creando el turno");
+    toast("Turno creado ✅", "success");
+    e.target.reset();
+    await loadList();
+  } catch (err) { toast(err.message, "error"); }
+});
+
+$("#refresh").addEventListener("click", loadList);
+$("#refreshTop").addEventListener("click", loadList);
+$("#clearFilter").addEventListener("click", async ()=>{ filterDate.value = ""; await loadList(); });
+filterDate.addEventListener("change", loadList);
+
+async function loadList() {
+  const res = await fetch("/api/appointments");
+  const items = await res.json();
+  cacheItems = items;
+
+  let filtered = items;
+  const selected = filterDate.value;
+  if (selected) filtered = items.filter(i => i.date === selected);
+
+  count.textContent = `${filtered.length} turno${filtered.length!==1?"s":""}`;
+  tbody.innerHTML = filtered.map(i => rowHtml(i)).join("");
+  await refreshAuthStatus();
+}
+
+function rowHtml(i){
+  const statusClass = `tag ${i.status || "confirmed"}`;
+  const calLink = i.calendarHtmlLink
+    ? `<a class="btn secondary" target="_blank" href="${i.calendarHtmlLink}">Calendar</a>`
+    : "";
+  return `<tr data-id="${i._id}">
+    <td>${i.date}</td>
+    <td>${i.time}</td>
+    <td>${escapeHtml(i.name)}</td>
+    <td>${i.notes ? escapeHtml(i.notes) : ""}</td>
+    <td><span class="${statusClass}">${i.status || "confirmed"}</span></td>
+    <td style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${calLink}
+      <button class="secondary" onclick="openRescheduleToast('${i._id}', '${i.date}', '${i.time}', ${JSON.stringify(i.notes || "").replace(/"/g,'&quot;')})">Reprogramar</button>
+      <button class="danger" onclick="uiCancel('${i._id}')">Cancelar</button>
+    </td>
+  </tr>`;
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+// Cancelar con toast de confirmación
+function openConfirmToast({ title="¿Confirmar?", okText="Sí", cancelText="No", onConfirm }){
+  const box = document.createElement("div");
+  box.className = "toast-form"; box.style.width = "320px";
+  box.innerHTML = `
+    <h3>${title}</h3>
+    <div class="toast-actions">
+      <button class="btn secondary" id="cf-cancel">${cancelText}</button>
+      <button class="btn primary" id="cf-ok">${okText}</button>
+    </div>`;
+  const t = Toastify({ node: box, duration: -1, gravity: "top", position: "right", close: true });
+  t.showToast();
+  box.querySelector("#cf-cancel").addEventListener("click", ()=> t.hideToast());
+  box.querySelector("#cf-ok").addEventListener("click", async ()=>{
+    try { await onConfirm?.(); t.hideToast(); } catch {}
+  });
+}
+async function uiCancel(id) {
+  openConfirmToast({
+    title: "¿Cancelar este turno?",
+    okText: "Cancelar",
+    cancelText: "Cerrar",
+    onConfirm: async () => {
+      const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) { toast(json.error || "No se pudo cancelar", "error"); return; }
+      toast("Turno cancelado ❌", "warn");
+      await loadList();
+    }
+  });
+}
+
+// Reprogramar con toast-form
+function openRescheduleToast(id, oldDate, oldTime, oldNotes){
+  const wrapper = document.createElement("div");
+  wrapper.className = "toast-form";
+  wrapper.innerHTML = `
+    <h3>Reprogramar turno</h3>
+    <label>Nueva fecha</label>
+    <input id="rf-date" type="date" value="${oldDate}">
+    <label>Nueva hora</label>
+    <input id="rf-time" type="time" value="${oldTime}">
+    <label>Notas (opcional)</label>
+    <textarea id="rf-notes" rows="2" placeholder="Dejar vacío para mantener...">${oldNotes || ""}</textarea>
+    <div class="toast-actions">
+      <button class="btn secondary" id="rf-cancel">Cerrar</button>
+      <button class="btn primary" id="rf-save">Guardar</button>
+    </div>
+    <div id="rf-error" style="color:#dc2626;font-size:12px;margin-top:6px;"></div>
+  `;
+  const t = Toastify({ node: wrapper, duration: -1, gravity: "top", position: "right", close: true, stopOnFocus:true });
+  t.showToast();
+  wrapper.querySelector("#rf-cancel").addEventListener("click", () => t.hideToast());
+  wrapper.querySelector("#rf-save").addEventListener("click", async () => {
+    const newDate = wrapper.querySelector("#rf-date").value;
+    const newTime = wrapper.querySelector("#rf-time").value;
+    const notesRaw = wrapper.querySelector("#rf-notes").value;
+    const payload = { date: newDate, time: newTime };
+    if (notesRaw.trim() !== "") payload.notes = notesRaw.trim();
+
+    const err = wrapper.querySelector("#rf-error");
+    err.textContent = "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) { err.textContent="Fecha inválida"; return; }
+    if (!/^\d{2}:\d{2}$/.test(newTime)) { err.textContent="Hora inválida"; return; }
+
+    const conflict = cacheItems.some(x =>
+      x._id !== id && x.date === newDate && x.time === newTime && x.status !== "canceled"
+    );
+    if (conflict) { err.textContent = "Ese horario ya está ocupado por otro turno."; return; }
+
+    try{
+      const res = await fetch(`/api/appointments/${id}/reschedule`, {
+        method: "PATCH",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo reprogramar");
+      toast("Turno reprogramado 🔁", "success");
+      t.hideToast();
+      await loadList();
+    }catch(e){ err.textContent = e.message || "Error reprogramando"; }
+  });
+}
+
+// init
+loadList();
+</script>
+</body>
+</html>
