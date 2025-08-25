@@ -71,6 +71,11 @@
     .btn{ padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:#fff; cursor:pointer; }
     .btn.primary{ background:var(--accent); color:#fff; border:0; }
     .btn.secondary{ background:#fff; }
+
+    /* deshabilitado */
+    button[disabled], .btn[disabled], a.btn[disabled] {
+      opacity:.6; cursor:not-allowed; pointer-events:none;
+    }
   </style>
 </head>
 <body>
@@ -85,7 +90,7 @@
         <button id="btnConfig" class="secondary">⚙️ Configuración</button>
         <div id="menu" class="menu">
           <div style="padding:6px 8px; color:var(--muted); font-size:12px">Integraciones</div>
-          <a id="btnConnect" href="/auth">Conectar cuenta Google</a>
+          <a id="btnConnect" href="#">Conectar cuenta Google</a>
           <button id="btnReauth">Forzar reconexión</button>
         </div>
       </div>
@@ -166,6 +171,11 @@
   </div>
 
 <script>
+/* ===== Config del backend ===== */
+const API_BASE = "https://turnos-app-backend.onrender.com";
+const API = (p) => `${API_BASE}${p}`;
+
+/* ===== Util ===== */
 const $ = s => document.querySelector(s);
 const tbody = $("#tbody");
 const count = $("#count");
@@ -181,31 +191,38 @@ function toast(msg, type="info"){
   Toastify({ text: msg, duration: 3200, close: true, gravity:"top", position:"right", className:type, stopOnFocus:true }).showToast();
 }
 
+/* ===== UI Menú ===== */
+btnConnect.href = API("/auth"); // conectar Google apunta al backend
+
 btnConfig.addEventListener("click", ()=> { menu.style.display = (menu.style.display==="block") ? "none" : "block"; });
 document.addEventListener("click", (e)=>{ if(!menu.contains(e.target) && !btnConfig.contains(e.target)) menu.style.display="none"; });
 
 async function refreshAuthStatus(){
   try{
-    const r = await fetch("/api/auth/status");
+    const r = await fetch(API("/api/auth/status"));
     const { connected } = await r.json();
     btnConnect.style.display = connected ? "none" : "block";
   }catch{}
 }
 btnReauth.addEventListener("click", async ()=>{
   if(!confirm("Esto desconecta tu cuenta localmente. ¿Continuar?")) return;
-  const r = await fetch("/api/auth/reset",{method:"POST"});
+  const r = await fetch(API("/api/auth/reset"),{method:"POST"});
   const j = await r.json();
   if(j.ok){ toast("Listo. Volvé a conectar tu cuenta.", "warn"); btnConnect.style.display="block"; }
   else { toast("No se pudo reiniciar la conexión", "error"); }
 });
 
-// Crear
+/* ===== Crear turno ===== */
 $("#book").addEventListener("submit", async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.target).entries());
   data.durationMin = Number(data.durationMin || 30);
   try {
-    const res = await fetch("/api/appointments", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(data) });
+    const res = await fetch(API("/api/appointments"), {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(data)
+    });
     const json = await res.json();
     if (!res.ok || !json.ok) throw new Error(json.error || "Error creando el turno");
     toast("Turno creado ✅", "success");
@@ -219,8 +236,9 @@ $("#refreshTop").addEventListener("click", loadList);
 $("#clearFilter").addEventListener("click", async ()=>{ filterDate.value = ""; await loadList(); });
 filterDate.addEventListener("change", loadList);
 
+/* ===== Listado ===== */
 async function loadList() {
-  const res = await fetch("/api/appointments");
+  const res = await fetch(API("/api/appointments"));
   const items = await res.json();
   cacheItems = items;
 
@@ -254,7 +272,7 @@ function rowHtml(i){
 
 function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
 
-// Cancelar con toast de confirmación
+/* ===== Cancelar con toast de confirmación ===== */
 function openConfirmToast({ title="¿Confirmar?", okText="Sí", cancelText="No", onConfirm }){
   const box = document.createElement("div");
   box.className = "toast-form"; box.style.width = "320px";
@@ -266,27 +284,41 @@ function openConfirmToast({ title="¿Confirmar?", okText="Sí", cancelText="No",
     </div>`;
   const t = Toastify({ node: box, duration: -1, gravity: "top", position: "right", close: true });
   t.showToast();
-  box.querySelector("#cf-cancel").addEventListener("click", ()=> t.hideToast());
-  box.querySelector("#cf-ok").addEventListener("click", async ()=>{
-    try { await onConfirm?.(); t.hideToast(); } catch {}
+  const btnCancel = box.querySelector("#cf-cancel");
+  const btnOk = box.querySelector("#cf-ok");
+  btnCancel.addEventListener("click", ()=> t.hideToast());
+  btnOk.addEventListener("click", async ()=>{
+    btnOk.disabled = true; btnOk.textContent = "Cancelando...";
+    try { await onConfirm?.(); t.hideToast(); } 
+    catch { btnOk.disabled = false; btnOk.textContent = okText; }
   });
 }
+
 async function uiCancel(id) {
+  // deshabilitamos el botón de la fila mientras confirmamos
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  const btn = row?.querySelector("button.danger");
   openConfirmToast({
     title: "¿Cancelar este turno?",
     okText: "Cancelar",
     cancelText: "Cerrar",
     onConfirm: async () => {
-      const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!res.ok || !json.ok) { toast(json.error || "No se pudo cancelar", "error"); return; }
-      toast("Turno cancelado ❌", "warn");
-      await loadList();
+      if (btn) { btn.disabled = true; btn.textContent = "Cancelando..."; }
+      try {
+        const res = await fetch(API(`/api/appointments/${id}`), { method: "DELETE" });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo cancelar");
+        toast("Turno cancelado ❌", "warn");
+        await loadList();
+      } catch (e) {
+        toast(e.message || "Error cancelando", "error");
+        if (btn) { btn.disabled = false; btn.textContent = "Cancelar"; }
+      }
     }
   });
 }
 
-// Reprogramar con toast-form
+/* ===== Reprogramar con toast-form ===== */
 function openRescheduleToast(id, oldDate, oldTime, oldNotes){
   const wrapper = document.createElement("div");
   wrapper.className = "toast-form";
@@ -306,8 +338,9 @@ function openRescheduleToast(id, oldDate, oldTime, oldNotes){
   `;
   const t = Toastify({ node: wrapper, duration: -1, gravity: "top", position: "right", close: true, stopOnFocus:true });
   t.showToast();
+  const btnSave = wrapper.querySelector("#rf-save");
   wrapper.querySelector("#rf-cancel").addEventListener("click", () => t.hideToast());
-  wrapper.querySelector("#rf-save").addEventListener("click", async () => {
+  btnSave.addEventListener("click", async () => {
     const newDate = wrapper.querySelector("#rf-date").value;
     const newTime = wrapper.querySelector("#rf-time").value;
     const notesRaw = wrapper.querySelector("#rf-notes").value;
@@ -325,7 +358,8 @@ function openRescheduleToast(id, oldDate, oldTime, oldNotes){
     if (conflict) { err.textContent = "Ese horario ya está ocupado por otro turno."; return; }
 
     try{
-      const res = await fetch(`/api/appointments/${id}/reschedule`, {
+      btnSave.disabled = true; btnSave.textContent = "Guardando...";
+      const res = await fetch(API(`/api/appointments/${id}/reschedule`), {
         method: "PATCH",
         headers: { "Content-Type":"application/json" },
         body: JSON.stringify(payload),
@@ -335,11 +369,14 @@ function openRescheduleToast(id, oldDate, oldTime, oldNotes){
       toast("Turno reprogramado 🔁", "success");
       t.hideToast();
       await loadList();
-    }catch(e){ err.textContent = e.message || "Error reprogramando"; }
+    }catch(e){
+      err.textContent = e.message || "Error reprogramando";
+      btnSave.disabled = false; btnSave.textContent = "Guardar";
+    }
   });
 }
 
-// init
+/* ===== init ===== */
 loadList();
 </script>
 </body>
